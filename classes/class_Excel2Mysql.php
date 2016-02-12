@@ -20,24 +20,26 @@ date_default_timezone_set('Asia/Dili');
             $this->_endRow   = $endRow;
             $this->_columns  = $columns;
         }
-    public function readCell($column, $row, $worksheetName = '') {
-            //  Only read the rows and columns that were configured
-            if ($row >= $this->_startRow && $row <= $this->_endRow) {
-                if (in_array($column,$this->_columns)) {
-                    return true;
+        public function readCell($column, $row, $worksheetName = '') {
+                //  Only read the rows and columns that were configured
+                if ($row >= $this->_startRow && $row <= $this->_endRow) {
+                    if (in_array($column,$this->_columns)) {
+                        return true;
+                    }
                 }
+                return false;
             }
-            return false;
-        }
-}
+    }
 
 
 
 
-    class Excel2Mysql extends MyReadFilter {
+    class Excel2Mysql extends MyReadFilter
+    {
         public $conn;
         private $excelSheetDataArray;
         private $table;
+        private $duplicateRecordsFoundInDb;
 
 
         function __construct($host, $user, $pass, $db)
@@ -126,11 +128,13 @@ date_default_timezone_set('Asia/Dili');
 
         }
 
-        protected function get_unique_records_from_excel() {
+        protected function get_unique_records_from_excel()
+        {
 
         }
 
-        protected function insert_records_in_db() {
+        protected function insert_records_in_db()
+        {
 
         }
 
@@ -138,7 +142,12 @@ date_default_timezone_set('Asia/Dili');
         {
             foreach ($excelSheetDataArray as $excelrow) {
                 if(!empty($excelrow['A'])) {
-                $findDbRowHavingSameKey =  "SELECT
+                    echo '<pre>';
+            print_r($excelrow);
+            echo '</pre>';
+
+
+                echo $findDbRowHavingSameKey =  "SELECT
                                                 stockID, stockName,
                                                 action,
                                                 entryDate,
@@ -152,12 +161,36 @@ date_default_timezone_set('Asia/Dili');
                 }
             }
 
-            $duplicateRecordsFoundInDb = $conn->query($findDbRowHavingSameKey);
-            print_r($duplicateRecordsFoundInDb);
+            //$duplicateRecordsFoundInDb = $this->conn->query($findDbRowHavingSameKey);
+            $duplicateRecordsFoundInDb = $this->conn->query($findDbRowHavingSameKey);
 
-//            if($duplicateRecordsFoundInDb->num_rows>0){
-//                echo "record found";
-//            }
+            if (!$duplicateRecordsFoundInDb) {
+                throw new Exception("Database Error [{$this->conn->errno}] {$this->conn->error}");
+            }
+
+
+            //if ($duplicateRecordsFoundInDb->num_rows>0) {
+            $dbRowArray = $duplicateRecordsFoundInDb->fetch_assoc();
+
+                    echo 'DB Array - ';
+                    echo '<pre>';
+                    print_r($dbRowArray);
+                    echo '</pre><hr>';
+
+            $excelRowArray = array(
+                                'stockID'     =>$singleRow['A'],
+                                'stockName'   =>$singleRow['B'],
+                                'action'      =>$singleRow['C'],
+                                'entryDate'   =>$singleRow['D'],
+                                'entryPrice'  =>$singleRow['E'],
+                                'targetPrice' =>$singleRow['F'],
+                                'stopLoss'    =>$singleRow['G'],
+                                'exitDate'    =>$singleRow['H'],
+                                'exitPrice'   =>$singleRow['I']
+                               );
+          //  }
+
+
         }
 
         protected function update_column_having_new_values() {
