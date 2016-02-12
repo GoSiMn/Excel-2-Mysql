@@ -1,9 +1,9 @@
 <?php
 /**
 * PHPExcel
+* OPPs reference - http://www.codeproject.com/Articles/880238/CRUD-Operation-by-MySqli-OOP-way-in-PHP
 */
 include_once 'classes/class_Excel2Mysql.php';
-//require_once dirname(__FILE__) . '/../../PHPExcel/Classes/PHPExcel.php';
 
 $host  = 'localhost';
 $user  = 'root';
