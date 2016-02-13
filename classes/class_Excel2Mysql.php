@@ -39,7 +39,8 @@ date_default_timezone_set('Asia/Dili');
         public $conn;
         private $excelSheetDataArray;
         private $table;
-        private $duplicateRecordsFoundInDb;
+       // private $duplicateRecordsFoundInDb;
+
 
 
         function __construct($host, $user, $pass, $db)
@@ -58,12 +59,13 @@ date_default_timezone_set('Asia/Dili');
             }
         }
 
+
         /*  Create and select Database  */
         private function create_and_select_db($db)
         {
             $createDB = 'CREATE DATABASE IF NOT EXISTS '.$db;
 
-            if ($this->conn->query($createDB))
+            if ($this->conn->query($createDB) === TRUE)
             {
                 echo 'Database "' .$db. '" created successfully. <br>';
                 $this->conn->select_db($db);
@@ -103,12 +105,53 @@ date_default_timezone_set('Asia/Dili');
 
         }
 
-        public function get_records_from_db()
+
+        /*  Get all records form table  */
+        public function fetch_records_from_db($table, array $columns)
         {
-            $getAllRecordsFromDB = 'SELECT stockID, stockName,action,entryDate,entryPrice,targetPrice,stopLoss,exitDate,exitPrice FROM ' .$table. ' WHERE stockID ="' .$singleRow['A']. '"';
+            $columns = implode(', ', $columns);
+            $selectDbRecords = "SELECT $columns
+                                    FROM $table";
+
+            $getAllRecordsFromDB = $this->conn->query($selectDbRecords);
+
+            if ($this->conn->errno)
+            {
+                die("Fail Select " . $this->conn->error);
+            }
+            return $getAllRecordsFromDB->fetch_all(MYSQLI_ASSOC);
+            //print_r($getAllRecordsFromDB);
+
         }
 
-        public function get_records_from_excel($inputFileName, $inputFileType, $sheetname, $table)
+
+        /* Add records in database table    */
+        public function insert_records_in_db($table, array $dataToInsert)
+        {
+            $colNames = implode(', ', array_keys($dataToInsert));
+
+            $i = 0;
+            foreach($dataToInsert as $key => $val)
+            {
+                $strValue[$i] = "'" .$val. "'";
+                $i++;
+            }
+
+            $colValues = implode(', ', $strValue);
+
+            $insertRecordsInDb = "INSERT INTO $table ($colNames) VALUES ($colValues)";
+
+            if($this->conn->query($insertRecordsInDb) === TRUE)
+            {
+                echo "<br>inserted <br>";
+            }
+            else
+            {
+                echo "Error - " .$this->conn->error;
+            }
+        }
+
+        public function get_records_from_excel($inputFileName, $inputFileType, $sheetname)
         {
             /**  Create an Instance of our Read Filter, passing in the cell range  **/
             $filterSubset = new MyReadFilter(2,50,range('A','I'));
@@ -118,13 +161,15 @@ date_default_timezone_set('Asia/Dili');
             $objReader->setReadFilter($filterSubset);
             $objPHPExcel = $objReader->load($inputFileName);
 
-            $excelSheetDataArray = $objPHPExcel->getActiveSheet()->toArray(null,true,true,true);
+            // $excelSheetDataArray = $objPHPExcel->getActiveSheet()->toArray(null,true,true,true);
+             return $objPHPExcel->getActiveSheet()->toArray(null,true,true,true);
+
 //            echo '<pre>';
 //            print_r($excelSheetDataArray);
 //            echo '</pre>';
 
 
-            $this->get_duplicate_records_from_db($excelSheetDataArray, $table);
+            //$this->get_duplicate_records_from_db($excelSheetDataArray, $table);
 
         }
 
@@ -133,67 +178,40 @@ date_default_timezone_set('Asia/Dili');
 
         }
 
-        protected function insert_records_in_db()
+        public function get_duplicate_records_from_db($sheetData, $table)
         {
 
-        }
 
-        public function get_duplicate_records_from_db($excelSheetDataArray, $table)
-        {
-            foreach ($excelSheetDataArray as $excelrow) {
-                if(!empty($excelrow['A'])) {
+            foreach ($sheetData as $excelrow) {
+                if(!empty($excelrow['A']))
+                {
+
+//                echo '<hr>Ecxel Data - <pre>';
+//                print_r($excelrow);
+//                echo '</pre>';
+
+
+                    echo $selectDuplicateRecordsFromDB = 'SELECT stockID, stockName, action, entryDate, entryPrice, targetPrice, stopLoss, exitDate, exitPrice FROM ' .$table. ' WHERE stockID = "' .$excelrow['A'].'"';
+
+                    $DuplicateRecordsFromDB = $this->conn->query($selectDuplicateRecordsFromDB);
+
+                    if ($this->conn->errno)
+                    {
+                        die("Fail Select " . $this->conn->error);
+                    }
+                    $DuplicateRecordsFromDB->fetch_all(MYSQLI_ASSOC);
+
                     echo '<pre>';
-            print_r($excelrow);
-            echo '</pre>';
+                    print_r($DuplicateRecordsFromDB);
+                    echo '</pre>';
 
-
-                echo $findDbRowHavingSameKey =  "SELECT
-                                                stockID, stockName,
-                                                action,
-                                                entryDate,
-                                                entryPrice,
-                                                targetPrice,
-                                                stopLoss,
-                                                exitDate,
-                                                exitPrice
-                                            FROM ". $table ."
-                                            WHERE stockID = '".$excelrow['A']."' <br>";
                 }
             }
 
-            //$duplicateRecordsFoundInDb = $this->conn->query($findDbRowHavingSameKey);
-            $duplicateRecordsFoundInDb = $this->conn->query($findDbRowHavingSameKey);
-
-            if (!$duplicateRecordsFoundInDb) {
-                throw new Exception("Database Error [{$this->conn->errno}] {$this->conn->error}");
-            }
-
-
-            //if ($duplicateRecordsFoundInDb->num_rows>0) {
-            $dbRowArray = $duplicateRecordsFoundInDb->fetch_assoc();
-
-                    echo 'DB Array - ';
-                    echo '<pre>';
-                    print_r($dbRowArray);
-                    echo '</pre><hr>';
-
-            $excelRowArray = array(
-                                'stockID'     =>$singleRow['A'],
-                                'stockName'   =>$singleRow['B'],
-                                'action'      =>$singleRow['C'],
-                                'entryDate'   =>$singleRow['D'],
-                                'entryPrice'  =>$singleRow['E'],
-                                'targetPrice' =>$singleRow['F'],
-                                'stopLoss'    =>$singleRow['G'],
-                                'exitDate'    =>$singleRow['H'],
-                                'exitPrice'   =>$singleRow['I']
-                               );
-          //  }
-
 
         }
 
-        protected function update_column_having_new_values() {
+        function update_column_having_new_values() {
 
         }
 

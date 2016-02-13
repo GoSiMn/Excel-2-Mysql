@@ -14,6 +14,11 @@ $table = 'report_performance';
 $inputFileName = './workbooks/Research Performance Tracker.xlsx';
 $inputFileType = 'Excel2007';
 $sheetname     = 'Equity';
+
+
+$columns = array('stockID', 'stockName', 'action', 'entryDate', 'entryPrice', 'targetPrice', 'stopLoss', 'exitDate', 'exitPrice');
+
+$recordsToInsert = array('stockID' => '15648', 'stockName' => 'anu');
 ?>
 
 <?php
@@ -22,10 +27,26 @@ $sheetname     = 'Equity';
 
     $equity->create_table($table);
 
+    //  Insert records in database
 
-    $equity->get_records_from_excel($inputFileName, $inputFileType, $sheetname, $table);
+    $equity->insert_records_in_db($table, $recordsToInsert);
 
-    //$equity->get_duplicate_records_from_db();
+    //  Store table data in a varriable
+    $tableData = $equity->fetch_records_from_db($table, $columns);
+
+    //  Show data form table
+    //  echo "<pre>";
+    //  print_r($tableData);
+    //  echo "</pre>";
+
+    $sheetData = $equity->get_records_from_excel($inputFileName, $inputFileType, $sheetname);
+
+    //  Show data form table
+    //  echo "<pre>";
+    //  print_r($sheetData);
+    //  echo "</pre>";
+
+    $equity->get_duplicate_records_from_db($sheetData, $table);
 
 
 ?>
