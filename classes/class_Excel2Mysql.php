@@ -191,7 +191,7 @@ date_default_timezone_set('Asia/Dili');
 //                echo '</pre>';
 
 
-                    echo $selectDuplicateRecordsFromDB = 'SELECT stockID, stockName, action, entryDate, entryPrice, targetPrice, stopLoss, exitDate, exitPrice FROM ' .$table. ' WHERE stockID = "' .$excelrow['A'].'"';
+                    $selectDuplicateRecordsFromDB = 'SELECT stockID, stockName, action, entryDate, entryPrice, targetPrice, stopLoss, exitDate, exitPrice FROM ' .$table. ' WHERE stockID = "' .$excelrow['A'].'"';
 
                     $DuplicateRecordsFromDB = $this->conn->query($selectDuplicateRecordsFromDB);
 
@@ -201,9 +201,32 @@ date_default_timezone_set('Asia/Dili');
                     }
                     $DuplicateRecordsFromDB->fetch_all(MYSQLI_ASSOC);
 
-                    echo '<pre>';
-                    print_r($DuplicateRecordsFromDB);
-                    echo '</pre>';
+                    /*  If duplicate record found   */
+                    if($DuplicateRecordsFromDB->num_rows>0) {
+
+                        $dbRowArray = $DuplicateRecordsFromDB->fetch_assoc();
+                        echo 'Database Row - <pre>';
+                        print_r($dbRowArray);
+                        echo '</pre>';
+
+                        /*  Get the excel sheet's row in which duplicate record found */
+                        $excelRowArray = array(
+                                'stockID'     =>$excelrow['A'],
+                                'stockName'   =>$excelrow['B'],
+                                'action'      =>$excelrow['C'],
+                                'entryDate'   =>$excelrow['D'],
+                                'entryPrice'  =>$excelrow['E'],
+                                'targetPrice' =>$excelrow['F'],
+                                'stopLoss'    =>$excelrow['G'],
+                                'exitDate'    =>$excelrow['H'],
+                                'exitPrice'   =>$excelrow['I']
+                               );
+                        echo 'Excel Sheet Row - <pre>';
+                        print_r($excelRowArray);
+                        echo '</pre>';
+                    }
+
+
 
                 }
             }
