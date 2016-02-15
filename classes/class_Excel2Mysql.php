@@ -119,7 +119,17 @@ date_default_timezone_set('Asia/Dili');
             {
                 die("Fail Select " . $this->conn->error);
             }
-            return $getAllRecordsFromDB->fetch_all(MYSQLI_ASSOC);
+            else
+            {
+                if($getAllRecordsFromDB->num_rows>0) {
+                    return $getAllRecordsFromDB->fetch_all(MYSQLI_ASSOC);
+                }
+                else
+                {
+                    echo "Database is empty.";
+                }
+
+            }
             //print_r($getAllRecordsFromDB);
 
         }
@@ -143,7 +153,7 @@ date_default_timezone_set('Asia/Dili');
 
             if($this->conn->query($insertRecordsInDb) === TRUE)
             {
-                echo "<br>inserted <br>";
+                echo "<br>Values inserted successfully. <br>";
             }
             else
             {
@@ -176,51 +186,115 @@ date_default_timezone_set('Asia/Dili');
 
         public function get_duplicate_records_from_db($sheetData, $table, array $columns)
         {
-
-            $columns = implode(', ', $columns);
+            $colNames = implode(', ', $columns);
 
             foreach ($sheetData as $excelrow) {
                 //echo $excelrow['A'];
                 if(!empty($excelrow['A']))
                 {
 
-                echo '<hr>Excel Records - <pre>';
-                print_r($excelrow);
-                echo '</pre>';
+//                echo '<hr>Excel Records - <pre>';
+//                print_r($excelrow);
+//                echo '</pre>';
 
 
-                $selectDuplicateRecordsFromDB = "SELECT $columns FROM $table WHERE stockID = '".$excelrow['A']."'";
-                    
+                $selectDuplicateRecordsFromDB = "SELECT $colNames FROM $table WHERE stockID = '".$excelrow['A']."'";
+
                     $duplicateRowsFromDB = $this->conn->query($selectDuplicateRecordsFromDB);
-                    
-                    if($duplicateRowsFromDB === FALSE) 
+
+                    if($duplicateRowsFromDB === FALSE)
                     {
                         trigger_error('Wrong SQL : '. $selectDuplicateRecordsFromDB. '<br><b>Error : </b>' .$this->conn->error, E_USER_ERROR);
                     }
-                    else 
+                    else
                     {
-                        $duplicateRowsFromDB->data_seek(0);
-                        while($row = $duplicateRowsFromDB->fetch_assoc()) {
-                            echo 'Database Records - <pre>';
-                            print_r($row);
-                            echo "</pre>";
+                        if($duplicateRowsFromDB->num_rows>0) {
+                            $dbRow = $duplicateRowsFromDB->fetch_assoc();
+                            //print_r($dbRow);
+
+
+                            $sheetRow = $this->sanitizeExcelRowArrayForDB($columns, $excelrow);
+
+                            $dataToUpdateInDB = array_diff_assoc($sheetRow, $dbRow);
+
+
+                            if(count($dataToUpdateInDB)>0)
+                            {
+                                $colNamesValues = $this->convertArrayIntoSyntaxforMysql($sheetRow);
+
+                                $updateColumnsInDB = "UPDATE $table SET $colNamesValues WHERE stockID = '".$excelrow['A']."'";
+
+                                $updateColumnsValuesInDB = $this->conn->query($updateColumnsInDB);
+
+                                if($updateColumnsValuesInDB === FALSE)
+                                {
+                                    trigger_error('Wrong SQL : <span style="color:#f00;">' .$updateColumnsInDB. '</span> <em>Error in</em>' . $this->conn->error, E_USER_ERROR);
+                                }
+                                else
+                                {
+                                    if(mysqli_affected_rows($this->conn))
+                                    {
+                                        echo "<br>Record updated successfully.<br>";
+                                    }
+                                    else {
+                                        echo "The Record you want to updated is no longer exists";
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            $insertNewRecordsFromExcelToDb  = "INSERT INTO $table ($colNames) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+                                if ($stmt = $this->conn->prepare($insertNewRecordsFromExcelToDb)) {
+
+                                    $sanitizedExcelRow = $this->sanitizeExcelRowArrayForDB($columns, $excelrow);
+
+
+                                    $stmt->bind_param("sssssssss", $stockID, $stockName,$action,$entryDate,$entryPrice,$targetPrice,$stopLoss,$exitDate,$exitPrice);
+
+
+                                    extract($sanitizedExcelRow);
+                                    $stmt->execute();
+
+                                    $noOfRowAffected = count($stmt->affected_rows);
+                                    if($noOfRowAffected>0)
+                                    {
+                                        echo "$noOfRowAffected New records inserted successfully.";
+                                    }
+                                    else
+                                    {
+                                        echo "No new record found to update.";
+                                    }
+
+
+                                    $stmt->close();
+                                }
+                                else {
+                                    echo '<br><b style          =color:#f00;>Error - </b>' . $conn->error;
+                                }
                         }
                     }
-                    
-
-                    
                 }
             }
 
 
         }
 
-        protected function get_unique_records_from_excel()
+        protected function sanitizeExcelRowArrayForDB($columns ,$excelrow)
         {
-
+            $values = array_values($excelrow);
+            return (array_combine($columns, $values));
         }
-        function update_column_having_new_values() {
 
+        protected function convertArrayIntoSyntaxforMysql($array)
+        {
+            $i = 0;
+            foreach ($array as $col =>$val) {
+                $mysqlColsValues[$i] = $col. ' = "' .$val. '"' ;
+                $i++;
+            }
+            return (implode(' AND ', $mysqlColsValues));
         }
 
     }
