@@ -29,15 +29,15 @@ $recordsToInsert = array('stockID' => '15648', 'stockName' => 'anu');
 
     //  Insert records in database
 
-    $equity->insert_records_in_db($table, $recordsToInsert);
+    // $equity->insert_records_in_db($table, $recordsToInsert);
 
     //  Store table data in a varriable
     $tableData = $equity->fetch_records_from_db($table, $columns);
 
     //  Show data form table
-    //  echo "<pre>";
-    //  print_r($tableData);
-    //  echo "</pre>";
+//      echo "Database data - <pre>";
+//      print_r($tableData);
+//      echo "</pre>";
 
     $sheetData = $equity->get_records_from_excel($inputFileName, $inputFileType, $sheetname);
 
@@ -46,7 +46,46 @@ $recordsToInsert = array('stockID' => '15648', 'stockName' => 'anu');
     //  print_r($sheetData);
     //  echo "</pre>";
 
-    $equity->get_duplicate_records_from_db($sheetData, $table);
+    //$duplicatecols = $equity->get_duplicate_records_from_db($sheetData, $table, $columns);
+
+   //print_r($duplicatecols);
+
+    $a = array ( 'A' => 'EQ0001', 'B' => 'SBI', 'C' => 'BUY', 'D' => '42229', 'E' => '2399', 'F' => '2415', 'G' => '2385', 'H' => '42234', 'I' => '2392' );
+
+
+    print_r($a);
+echo "<br>";    
+//$a = array_values($a);
+
+function array_flatten($array) { 
+  if (!is_array($array)) { 
+    return false; 
+  } 
+  $result = array(); 
+  foreach ($array as $key => $value) { 
+    if (is_array($value)) { 
+      $result = array_merge($result, array_flatten($value)); 
+    } else { 
+      $result[$key] = $value; 
+    } 
+  } 
+  return $result; 
+}
+
+$ab = array_flatten($a);
+
+echo "<br>";
+var_dump($ab);
+
+echo "<br>";
+print_r($columns);
+echo "<br>";
+$b = array_fill_keys($columns, $a);
+echo "<br><pre>";
+print_r($b);
+echo "<br></pre>";
+
+
 
 
 ?>

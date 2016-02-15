@@ -77,7 +77,7 @@ date_default_timezone_set('Asia/Dili');
         }
 
 
-        /*  Create and select Database  */
+        /*  Create Table  */
         public function create_table($table)
         {
             $createTable = 'CREATE TABLE IF NOT EXISTS '. $table .' (
@@ -173,67 +173,52 @@ date_default_timezone_set('Asia/Dili');
 
         }
 
-        protected function get_unique_records_from_excel()
+
+        public function get_duplicate_records_from_db($sheetData, $table, array $columns)
         {
 
-        }
-
-        public function get_duplicate_records_from_db($sheetData, $table)
-        {
-
+            $columns = implode(', ', $columns);
 
             foreach ($sheetData as $excelrow) {
+                //echo $excelrow['A'];
                 if(!empty($excelrow['A']))
                 {
 
-//                echo '<hr>Ecxel Data - <pre>';
-//                print_r($excelrow);
-//                echo '</pre>';
+                echo '<hr>Excel Records - <pre>';
+                print_r($excelrow);
+                echo '</pre>';
 
 
-                    $selectDuplicateRecordsFromDB = 'SELECT stockID, stockName, action, entryDate, entryPrice, targetPrice, stopLoss, exitDate, exitPrice FROM ' .$table. ' WHERE stockID = "' .$excelrow['A'].'"';
-
-                    $DuplicateRecordsFromDB = $this->conn->query($selectDuplicateRecordsFromDB);
-
-                    if ($this->conn->errno)
+                $selectDuplicateRecordsFromDB = "SELECT $columns FROM $table WHERE stockID = '".$excelrow['A']."'";
+                    
+                    $duplicateRowsFromDB = $this->conn->query($selectDuplicateRecordsFromDB);
+                    
+                    if($duplicateRowsFromDB === FALSE) 
                     {
-                        die("Fail Select " . $this->conn->error);
+                        trigger_error('Wrong SQL : '. $selectDuplicateRecordsFromDB. '<br><b>Error : </b>' .$this->conn->error, E_USER_ERROR);
                     }
-                    $DuplicateRecordsFromDB->fetch_all(MYSQLI_ASSOC);
-
-                    /*  If duplicate record found   */
-                    if($DuplicateRecordsFromDB->num_rows>0) {
-
-                        $dbRowArray = $DuplicateRecordsFromDB->fetch_assoc();
-                        echo 'Database Row - <pre>';
-                        print_r($dbRowArray);
-                        echo '</pre>';
-
-                        /*  Get the excel sheet's row in which duplicate record found */
-                        $excelRowArray = array(
-                                'stockID'     =>$excelrow['A'],
-                                'stockName'   =>$excelrow['B'],
-                                'action'      =>$excelrow['C'],
-                                'entryDate'   =>$excelrow['D'],
-                                'entryPrice'  =>$excelrow['E'],
-                                'targetPrice' =>$excelrow['F'],
-                                'stopLoss'    =>$excelrow['G'],
-                                'exitDate'    =>$excelrow['H'],
-                                'exitPrice'   =>$excelrow['I']
-                               );
-                        echo 'Excel Sheet Row - <pre>';
-                        print_r($excelRowArray);
-                        echo '</pre>';
+                    else 
+                    {
+                        $duplicateRowsFromDB->data_seek(0);
+                        while($row = $duplicateRowsFromDB->fetch_assoc()) {
+                            echo 'Database Records - <pre>';
+                            print_r($row);
+                            echo "</pre>";
+                        }
                     }
+                    
 
-
-
+                    
                 }
             }
 
 
         }
 
+        protected function get_unique_records_from_excel()
+        {
+
+        }
         function update_column_having_new_values() {
 
         }
